@@ -1,5 +1,11 @@
 # `nonempty-collections`
 
+## Unreleased
+
+#### Added
+
+- `NESlice::last` to match `NEVec`.
+
 ## 1.2.1 (2025-11-11)
 
 Happy Remembrance Day.

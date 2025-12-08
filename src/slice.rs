@@ -1,13 +1,12 @@
 //! Non-empty Slices.
 
+use crate::iter::IntoNonEmptyIterator;
+use crate::iter::NonEmptyIterator;
 use core::fmt;
 use std::iter::FilterMap;
 use std::num::NonZeroUsize;
 use std::ops::Index;
 use std::slice::Chunks;
-
-use crate::iter::IntoNonEmptyIterator;
-use crate::iter::NonEmptyIterator;
 
 /// A non-empty slice. Like [`crate::NEVec`], but guaranteed to have borrowed
 /// contents.
@@ -27,12 +26,26 @@ pub struct NESlice<'a, T> {
 
 impl<'a, T> NESlice<'a, T> {
     /// Get the first element. Never fails.
+    ///
+    /// ```
+    /// use nonempty_collections::*;
+    ///
+    /// let v = nev![1,2,3];
+    /// assert_eq!(1, *v.first());
+    /// ```
     #[must_use]
     pub const fn first(&self) -> &T {
         &self.inner[0]
     }
 
     /// Get the last element. Never fails.
+    ///
+    /// ```
+    /// use nonempty_collections::*;
+    ///
+    /// let v = nev![1,2,3];
+    /// assert_eq!(3, *v.last());
+    /// ```
     #[must_use]
     #[allow(clippy::missing_panics_doc)] // never fails
     pub const fn last(&self) -> &T {
@@ -217,11 +230,11 @@ impl<T: fmt::Debug> fmt::Debug for NEChunks<'_, T> {
 mod tests {
     use std::num::NonZeroUsize;
 
+    use crate::nev;
+    use crate::slice::NEChunks;
     use crate::NESlice;
     use crate::NEVec;
     use crate::NonEmptyIterator;
-    use crate::nev;
-    use crate::slice::NEChunks;
 
     #[test]
     fn test_from_conversion() {
