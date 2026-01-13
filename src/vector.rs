@@ -95,6 +95,15 @@ impl<T> NEVec<T> {
     }
 
     /// Create a new non-empty list by repeating an element a non-zero number of times.
+    ///
+    /// ```
+    /// use nonempty_collections::NEVec;
+    /// use std::num::NonZeroUsize;
+    ///
+    /// let n = NonZeroUsize::new(3).unwrap();
+    /// let mut v = NEVec::from_elem(1, n);
+    /// assert_eq!(&v[..], &[1, 1, 1]);
+    /// ```
     #[must_use]
     pub fn from_elem(elem: T, n: NonZeroUsize) -> Self
     where
