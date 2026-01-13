@@ -1150,8 +1150,8 @@ impl<'a, T> IntoIterator for &'a mut NEVec<T> {
     }
 }
 
-impl<T> std::ops::Index<usize> for NEVec<T> {
-    type Output = T;
+impl<T, I: std::slice::SliceIndex<[T]>> std::ops::Index<I> for NEVec<T> {
+    type Output = I::Output;
 
     /// ```
     /// use nonempty_collections::nev;
@@ -1161,14 +1161,17 @@ impl<T> std::ops::Index<usize> for NEVec<T> {
     /// assert_eq!(v[0], 1);
     /// assert_eq!(v[1], 2);
     /// assert_eq!(v[3], 4);
+    /// assert_eq!(&v[..], &[1, 2, 3, 4, 5]);
+    /// assert_eq!(&v[2..], &[3, 4, 5]);
+    /// assert_eq!(&v[..2], &[1, 2]);
     /// ```
-    fn index(&self, index: usize) -> &T {
+    fn index(&self, index: I) -> &Self::Output {
         self.inner.index(index)
     }
 }
 
-impl<T> std::ops::IndexMut<usize> for NEVec<T> {
-    fn index_mut(&mut self, index: usize) -> &mut T {
+impl<T, I: std::slice::SliceIndex<[T]>> std::ops::IndexMut<I> for NEVec<T> {
+    fn index_mut(&mut self, index: I) -> &mut Self::Output {
         self.inner.index_mut(index)
     }
 }
