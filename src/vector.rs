@@ -59,15 +59,8 @@ macro_rules! nev {
     };
     ($elem:expr; $n:expr) => {{
         let n = const { ::std::num::NonZero::new($n).expect("Length cannot be 0") };
-        $crate::vector::from_elem($elem, n)
+        $crate::vector::NEVec::from_elem($elem, n)
     }};
-}
-
-#[doc(hidden)]
-pub fn from_elem<T: Clone>(elem: T, n: NonZeroUsize) -> NEVec<T> {
-    NEVec {
-        inner: vec![elem; n.get()],
-    }
 }
 
 /// A non-empty, growable Vector.
@@ -99,6 +92,17 @@ impl<T> NEVec<T> {
     #[must_use]
     pub fn new(head: T) -> Self {
         NEVec { inner: vec![head] }
+    }
+
+    /// Create a new non-empty list by repeating an element a non-zero number of times.
+    #[must_use]
+    pub fn from_elem(elem: T, n: NonZeroUsize) -> Self
+    where
+        T: Clone,
+    {
+        NEVec {
+            inner: vec![elem; n.get()],
+        }
     }
 
     /// Creates a new `NEVec` with a single element and specified capacity.
