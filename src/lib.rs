@@ -16,16 +16,20 @@
 //! Consider that unlike `Vec`, [`NEVec::first()`] and [`NEVec::last()`] don't
 //! return in `Option`; they always succeed.
 //!
+//! Alongside [`NEVec`](crate::vector::NEVec) are its cousins:
 //!
-//! Alongside [`NEVec`](crate::vector::NEVec) are its cousins
-//! [`NESlice`](crate::slice::NESlice), [`NEMap`](crate::map::NEMap),
-//! [`NESet`](crate::set::NESet), and [`NEBTreeSet`](crate::btree_set::NEBTreeSet),
+//! - [`NESlice`](crate::slice::NESlice)
+//! - [`NESet`](crate::set::NESet)
+//! - [`NEMap`](crate::map::NEMap)
+//! - [`NEBTreeSet`](crate::btree_set::NEBTreeSet)
+//! - [`NEBTreeMap`](crate::btree_map::NEBTreeMap)
+//!
 //! which are all guaranteed to contain at least one item.
 //!
 //! # Examples
 //!
 //! The simplest way to construct these non-empty collections is via their
-//! macros: [`nev!`], [`nes!`], [`nem!`], and [`nebts!`]:
+//! macros: [`nev!`], [`nes!`], [`nem!`], [`nebts!`] and [`nebtm!`]:
 //!
 //! ```
 //! use nonempty_collections::*;
@@ -136,6 +140,7 @@
 //! * `rand`: adds `NEVec` support for `SliceRandom`.
 
 pub mod array;
+pub mod btree_map;
 pub mod btree_set;
 pub mod iter;
 pub mod map;
@@ -152,6 +157,7 @@ pub mod itertools;
 
 pub use array::ArrayNonEmptyIterator;
 pub use array::NonEmptyArrayExt;
+pub use btree_map::NEBTreeMap;
 pub use btree_set::NEBTreeSet;
 #[cfg(feature = "either")]
 pub use either::NEEither;

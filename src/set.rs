@@ -1,4 +1,4 @@
-//! Non-empty Sets.
+//! Non-empty [`HashSet`]s.
 
 use core::fmt;
 use std::borrow::Borrow;
@@ -18,8 +18,7 @@ use crate::IntoIteratorExt;
 use crate::IntoNonEmptyIterator;
 use crate::Singleton;
 
-/// Like the [`crate::nev!`] macro, but for Sets. A nice short-hand for
-/// constructing [`NESet`] values.
+/// Like the [`crate::nev!`] macro, but for Sets.
 ///
 /// ```
 /// use nonempty_collections::nes;

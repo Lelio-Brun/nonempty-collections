@@ -1,4 +1,4 @@
-//! Non-empty Vectors.
+//! Non-empty [`Vec`]s.
 
 use crate::iter::FromNonEmptyIterator;
 use crate::iter::IntoNonEmptyIterator;
@@ -17,8 +17,7 @@ use serde::Deserialize;
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
-/// Like the [`vec!`] macro, but enforces at least one argument. A nice
-/// short-hand for constructing [`NEVec`] values.
+/// Like the [`vec!`] macro, but enforces at least one argument.
 ///
 /// ```
 /// use nonempty_collections::nev;

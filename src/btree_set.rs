@@ -1,4 +1,4 @@
-//! Non-empty Binary Tree Sets.
+//! Non-empty [`BTreeSet`]s.
 
 use core::fmt;
 use std::borrow::Borrow;
@@ -16,8 +16,7 @@ use crate::IntoIteratorExt;
 use crate::IntoNonEmptyIterator;
 use crate::Singleton;
 
-/// Like the [`crate::nes!`] macro, but for Binary Tree Sets. A nice short-hand
-/// for constructing [`NEBTreeSet`] values.
+/// Like the [`crate::nes!`] macro, but for Binary Tree Sets.
 ///
 /// ```
 /// use nonempty_collections::nebts;

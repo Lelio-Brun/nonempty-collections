@@ -1,10 +1,8 @@
-//! Non-empty [`HashMap`]s.
+//! Non-empty [`BTreeMap`]s.
 
 use core::fmt;
 use std::borrow::Borrow;
-use std::collections::HashMap;
-use std::hash::BuildHasher;
-use std::hash::Hash;
+use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
 
 #[cfg(feature = "serde")]
@@ -18,32 +16,32 @@ use crate::IntoNonEmptyIterator;
 use crate::NonEmptyIterator;
 use crate::Singleton;
 
-/// Like the [`crate::nev!`] macro, but for Maps.
+/// Like the [`crate::nem!`] macro, but for Binary Tree Maps.
 ///
 /// ```
-/// use nonempty_collections::nem;
+/// use nonempty_collections::nebtm;
 ///
-/// let m = nem! {"elves" => 3000, "orcs" => 10000};
+/// let m = nebtm! {"elves" => 3000, "orcs" => 10000};
 /// assert_eq!(2, m.len().get());
 /// ```
 #[macro_export]
-macro_rules! nem {
+macro_rules! nebtm {
     ($hk:expr => $hv:expr, $( $xk:expr => $xv:expr ),* $(,)?) => {{
-        let mut map = $crate::NEMap::new($hk, $hv);
+        let mut map = $crate::NEBTreeMap::new($hk, $hv);
         $( map.insert($xk, $xv); )*
         map
     }};
     ($hk:expr => $hv:expr) => {
-        $crate::NEMap::new($hk, $hv)
+        $crate::NEBTreeMap::new($hk, $hv)
     }
 }
 
-/// A non-empty, growable `HashMap`.
+/// A non-empty, growable `BTreeMap`.
 ///
 /// ```
-/// use nonempty_collections::nem;
+/// use nonempty_collections::nebtm;
 ///
-/// let m = nem!["elves" => 3000, "orcs" => 10000];
+/// let m = nebtm!["elves" => 3000, "orcs" => 10000];
 /// assert_eq!(2, m.len().get());
 /// ```
 #[allow(clippy::unsafe_derive_deserialize)]
@@ -51,62 +49,46 @@ macro_rules! nem {
     feature = "serde",
     derive(Deserialize, Serialize),
     serde(bound(
-        serialize = "K: Eq + Hash + Clone + Serialize, V: Clone + Serialize, S: Clone + BuildHasher",
-        deserialize = "K: Eq + Hash + Clone + Deserialize<'de>, V: Deserialize<'de>, S: Default + BuildHasher"
+        serialize = "K: Ord + Clone + Serialize, V: Clone + Serialize",
+        deserialize = "K: Ord + Clone + Deserialize<'de>, V: Deserialize<'de>"
     )),
-    serde(into = "HashMap<K, V, S>", try_from = "HashMap<K, V, S>")
+    serde(into = "BTreeMap<K, V>", try_from = "BTreeMap<K, V>")
 )]
 #[derive(Clone)]
-pub struct NEMap<K, V, S = std::collections::hash_map::RandomState> {
-    inner: HashMap<K, V, S>,
+pub struct NEBTreeMap<K, V> {
+    inner: BTreeMap<K, V>,
 }
 
-impl<K, V> NEMap<K, V>
+impl<K, V> NEBTreeMap<K, V>
 where
-    K: Eq + Hash,
+    K: Ord,
 {
-    /// Creates a new `NEMap` with a single element.
+    /// Creates a new `NEBTreeMap` with a single element.
     #[must_use]
-    pub fn new(k: K, v: V) -> NEMap<K, V> {
-        let mut inner = HashMap::new();
+    pub fn new(k: K, v: V) -> NEBTreeMap<K, V> {
+        let mut inner = BTreeMap::new();
         inner.insert(k, v);
-        NEMap { inner }
-    }
-
-    /// Creates a new `NEMap` with a single element and specified capacity.
-    /// ```
-    /// use std::num::*;
-    ///
-    /// use nonempty_collections::*;
-    /// let map = NEMap::with_capacity(NonZeroUsize::MIN, 1, 1);
-    /// assert_eq!(nem! { 1 => 1 }, map);
-    /// assert!(map.capacity().get() >= 1);
-    /// ```
-    #[must_use]
-    pub fn with_capacity(capacity: NonZeroUsize, k: K, v: V) -> NEMap<K, V> {
-        let mut inner = HashMap::with_capacity(capacity.get());
-        inner.insert(k, v);
-        NEMap { inner }
+        NEBTreeMap { inner }
     }
 }
 
-impl<K, V, S> NEMap<K, V, S> {
-    /// Attempt a conversion from [`HashMap`], consuming the given `HashMap`.
-    /// Will return `None` if the `HashMap` is empty.
+impl<K, V> NEBTreeMap<K, V> {
+    /// Attempt a conversion from [`BTreeMap`], consuming the given `BTreeMap`.
+    /// Will return `None` if the `BTreeMap` is empty.
     ///
     /// ```
     /// use std::collections::*;
     ///
     /// use nonempty_collections::*;
     ///
-    /// let mut map = HashMap::new();
+    /// let mut map = BTreeMap::new();
     /// map.extend([("a", 1), ("b", 2)]);
-    /// assert_eq!(Some(nem! {"a" => 1, "b" => 2}), NEMap::try_from_map(map));
-    /// let map: HashMap<(), ()> = HashMap::new();
-    /// assert_eq!(None, NEMap::try_from_map(map));
+    /// assert_eq!(Some(nebtm! {"a" => 1, "b" => 2}), NEBTreeMap::try_from_map(map));
+    /// let map: BTreeMap<(), ()> = BTreeMap::new();
+    /// assert_eq!(None, NEBTreeMap::try_from_map(map));
     /// ```
     #[must_use]
-    pub fn try_from_map(map: HashMap<K, V, S>) -> Option<Self> {
+    pub fn try_from_map(map: BTreeMap<K, V>) -> Option<Self> {
         if map.is_empty() {
             None
         } else {
@@ -114,22 +96,10 @@ impl<K, V, S> NEMap<K, V, S> {
         }
     }
 
-    /// Returns the number of elements the map can hold without reallocating.
-    #[must_use]
-    pub fn capacity(&self) -> NonZeroUsize {
-        unsafe { NonZeroUsize::new_unchecked(self.inner.capacity()) }
-    }
-
-    /// Returns a reference to the map's `BuildHasher`.
-    #[must_use]
-    pub fn hasher(&self) -> &S {
-        self.inner.hasher()
-    }
-
     /// Returns a regular iterator over the entries in this non-empty map.
     ///
     /// For a `NonEmptyIterator` see `Self::nonempty_iter()`.
-    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, K, V> {
+    pub fn iter(&self) -> std::collections::btree_map::Iter<'_, K, V> {
         self.inner.iter()
     }
 
@@ -137,7 +107,7 @@ impl<K, V, S> NEMap<K, V, S> {
     /// map.
     ///
     /// For a `NonEmptyIterator` see `Self::nonempty_iter_mut()`.
-    pub fn iter_mut(&mut self) -> std::collections::hash_map::IterMut<'_, K, V> {
+    pub fn iter_mut(&mut self) -> std::collections::btree_map::IterMut<'_, K, V> {
         self.inner.iter_mut()
     }
 
@@ -168,7 +138,7 @@ impl<K, V, S> NEMap<K, V, S> {
     /// ```
     /// use nonempty_collections::*;
     ///
-    /// let m = nem!["Valmar" => "Vanyar", "Tirion" => "Noldor", "Alqualondë" => "Teleri"];
+    /// let m = nebtm!["Valmar" => "Vanyar", "Tirion" => "Noldor", "Alqualondë" => "Teleri"];
     /// let mut v: NEVec<_> = m.keys().collect();
     /// v.sort();
     /// assert_eq!(nev![&"Alqualondë", &"Tirion", &"Valmar"], v);
@@ -182,21 +152,14 @@ impl<K, V, S> NEMap<K, V, S> {
     /// Returns the number of elements in the map. Always 1 or more.
     ///
     /// ```
-    /// use nonempty_collections::nem;
+    /// use nonempty_collections::nebtm;
     ///
-    /// let m = nem!["a" => 1, "b" => 2];
+    /// let m = nebtm!["a" => 1, "b" => 2];
     /// assert_eq!(2, m.len().get());
     /// ```
     #[must_use]
     pub fn len(&self) -> NonZeroUsize {
         unsafe { NonZeroUsize::new_unchecked(self.inner.len()) }
-    }
-
-    /// A `NEMap` is never empty.
-    #[deprecated(since = "0.1.0", note = "A NEMap is never empty.")]
-    #[must_use]
-    pub const fn is_empty(&self) -> bool {
-        false
     }
 
     /// An iterator visiting all values in arbitrary order. The iterator element
@@ -205,7 +168,7 @@ impl<K, V, S> NEMap<K, V, S> {
     /// ```
     /// use nonempty_collections::*;
     ///
-    /// let m = nem!["Valmar" => "Vanyar", "Tirion" => "Noldor", "Alqualondë" => "Teleri"];
+    /// let m = nebtm!["Valmar" => "Vanyar", "Tirion" => "Noldor", "Alqualondë" => "Teleri"];
     /// let mut v: NEVec<_> = m.values().collect();
     /// v.sort();
     /// assert_eq!(nev![&"Noldor", &"Teleri", &"Vanyar"], v);
@@ -220,9 +183,9 @@ impl<K, V, S> NEMap<K, V, S> {
     // /// element type is `&'a mut V`.
     // ///
     // /// ```
-    // /// use nonempty_collections::nem;
+    // /// use nonempty_collections::nebtm;
     // ///
-    // /// let mut m = nem!["Valmar" => 10000, "Tirion" => 10000, "Alqualondë" =>
+    // /// let mut m = nebtm!["Valmar" => 10000, "Tirion" => 10000, "Alqualondë" =>
     // 10000]; ///
     // /// for v in m.values_mut() {
     // ///     *v += 1000;
@@ -236,17 +199,16 @@ impl<K, V, S> NEMap<K, V, S> {
     // }
 }
 
-impl<K, V, S> NEMap<K, V, S>
+impl<K, V> NEBTreeMap<K, V>
 where
-    K: Eq + Hash,
-    S: BuildHasher,
+    K: Ord,
 {
     /// Returns true if the map contains a value.
     ///
     /// ```
-    /// use nonempty_collections::nem;
+    /// use nonempty_collections::nebtm;
     ///
-    /// let m = nem!["Jack" => 8];
+    /// let m = nebtm!["Jack" => 8];
     /// assert!(m.contains_key("Jack"));
     /// assert!(!m.contains_key("Colin"));
     /// ```
@@ -254,7 +216,7 @@ where
     pub fn contains_key<Q>(&self, k: &Q) -> bool
     where
         K: Borrow<Q>,
-        Q: Eq + Hash + ?Sized,
+        Q: Ord + ?Sized,
     {
         self.inner.contains_key(k)
     }
@@ -265,9 +227,9 @@ where
     /// `Eq` on the borrowed form must match those for the key type.
     ///
     /// ```
-    /// use nonempty_collections::nem;
+    /// use nonempty_collections::nebtm;
     ///
-    /// let m = nem!["silmarils" => 3];
+    /// let m = nebtm!["silmarils" => 3];
     /// assert_eq!(Some(&3), m.get("silmarils"));
     /// assert_eq!(None, m.get("arkenstone"));
     /// ```
@@ -275,7 +237,7 @@ where
     pub fn get<Q>(&self, k: &Q) -> Option<&V>
     where
         K: Borrow<Q>,
-        Q: Eq + Hash + ?Sized,
+        Q: Ord + ?Sized,
     {
         self.inner.get(k)
     }
@@ -286,9 +248,9 @@ where
     /// `Eq` on the borrowed form must match those for the key type.
     ///
     /// ```
-    /// use nonempty_collections::nem;
+    /// use nonempty_collections::nebtm;
     ///
-    /// let m = nem!["silmarils" => 3];
+    /// let m = nebtm!["silmarils" => 3];
     /// assert_eq!(Some((&"silmarils", &3)), m.get_key_value("silmarils"));
     /// assert_eq!(None, m.get_key_value("arkenstone"));
     /// ```
@@ -296,7 +258,7 @@ where
     pub fn get_key_value<Q>(&self, k: &Q) -> Option<(&K, &V)>
     where
         K: Borrow<Q>,
-        Q: Eq + Hash + ?Sized,
+        Q: Ord + ?Sized,
     {
         self.inner.get_key_value(k)
     }
@@ -307,9 +269,9 @@ where
     /// `Eq` on the borrowed form must match those for the key type.
     ///
     /// ```
-    /// use nonempty_collections::nem;
+    /// use nonempty_collections::nebtm;
     ///
-    /// let mut m = nem!["silmarils" => 3];
+    /// let mut m = nebtm!["silmarils" => 3];
     /// let mut v = m.get_mut("silmarils").unwrap();
     ///
     /// // And thus it came to pass that the Silmarils found their long homes:
@@ -323,7 +285,7 @@ where
     pub fn get_mut<Q>(&mut self, k: &Q) -> Option<&mut V>
     where
         K: Borrow<Q>,
-        Q: Eq + Hash + ?Sized,
+        Q: Ord + ?Sized,
     {
         self.inner.get_mut(k)
     }
@@ -334,13 +296,13 @@ where
     ///
     /// If the map did have this key present, the value is updated, and the old
     /// value is returned. The key is not updated, though; this matters for
-    /// types that can be `==` without being identical. See [`HashMap::insert`]
+    /// types that can be `==` without being identical. See [`BTreeMap::insert`]
     /// for more.
     ///
     /// ```
-    /// use nonempty_collections::nem;
+    /// use nonempty_collections::nebtm;
     ///
-    /// let mut m = nem!["Vilya" => "Elrond", "Nenya" => "Galadriel"];
+    /// let mut m = nebtm!["Vilya" => "Elrond", "Nenya" => "Galadriel"];
     /// assert_eq!(None, m.insert("Narya", "Cirdan"));
     ///
     /// // The Ring of Fire was given to Gandalf upon his arrival in Middle Earth.
@@ -349,53 +311,24 @@ where
     pub fn insert(&mut self, k: K, v: V) -> Option<V> {
         self.inner.insert(k, v)
     }
-
-    /// Shrinks the capacity of the map as much as possible. It will drop down
-    /// as much as possible while maintaining the internal rules and possibly
-    /// leaving some space in accordance with the resize policy.
-    pub fn shrink_to_fit(&mut self) {
-        self.inner.shrink_to_fit();
-    }
-
-    /// See [`HashMap::with_capacity_and_hasher`].
-    #[must_use]
-    pub fn with_capacity_and_hasher(
-        capacity: NonZeroUsize,
-        hasher: S,
-        k: K,
-        v: V,
-    ) -> NEMap<K, V, S> {
-        let mut inner = HashMap::with_capacity_and_hasher(capacity.get(), hasher);
-        inner.insert(k, v);
-        NEMap { inner }
-    }
-
-    /// See [`HashMap::with_hasher`].
-    #[must_use]
-    pub fn with_hasher(hasher: S, k: K, v: V) -> NEMap<K, V, S> {
-        let mut inner = HashMap::with_hasher(hasher);
-        inner.insert(k, v);
-        NEMap { inner }
-    }
 }
 
-impl<K, V, S> AsRef<HashMap<K, V, S>> for NEMap<K, V, S> {
-    fn as_ref(&self) -> &HashMap<K, V, S> {
+impl<K, V> AsRef<BTreeMap<K, V>> for NEBTreeMap<K, V> {
+    fn as_ref(&self) -> &BTreeMap<K, V> {
         &self.inner
     }
 }
 
-impl<K, V, S> AsMut<HashMap<K, V, S>> for NEMap<K, V, S> {
-    fn as_mut(&mut self) -> &mut HashMap<K, V, S> {
+impl<K, V> AsMut<BTreeMap<K, V>> for NEBTreeMap<K, V> {
+    fn as_mut(&mut self) -> &mut BTreeMap<K, V> {
         &mut self.inner
     }
 }
 
-impl<K, V, S> PartialEq for NEMap<K, V, S>
+impl<K, V> PartialEq for NEBTreeMap<K, V>
 where
-    K: Eq + Hash,
+    K: Ord,
     V: PartialEq,
-    S: BuildHasher,
 {
     /// This is an `O(n)` comparison of each key/value pair, one by one.
     /// Short-circuits if any comparison fails.
@@ -403,8 +336,8 @@ where
     /// ```
     /// use nonempty_collections::*;
     ///
-    /// let m0 = nem!['a' => 1, 'b' => 2];
-    /// let m1 = nem!['b' => 2, 'a' => 1];
+    /// let m0 = nebtm!['a' => 1, 'b' => 2];
+    /// let m1 = nebtm!['b' => 2, 'a' => 1];
     /// assert_eq!(m0, m1);
     /// ```
     fn eq(&self, other: &Self) -> bool {
@@ -412,46 +345,43 @@ where
     }
 }
 
-impl<K, V, S> Eq for NEMap<K, V, S>
+impl<K, V> Eq for NEBTreeMap<K, V>
 where
-    K: Eq + Hash,
+    K: Ord,
     V: Eq,
-    S: BuildHasher,
 {
 }
 
-impl<K, V, S> From<NEMap<K, V, S>> for HashMap<K, V, S>
+impl<K, V> From<NEBTreeMap<K, V>> for BTreeMap<K, V>
 where
-    K: Eq + Hash,
-    S: BuildHasher,
+    K: Ord,
 {
     /// ```
-    /// use nonempty_collections::nem;
-    /// use std::collections::HashMap;
+    /// use nonempty_collections::nebtm;
+    /// use std::collections::BTreeMap;
     ///
-    /// let m: HashMap<&str, usize> = nem!["population" => 1000].into();
+    /// let m: BTreeMap<&str, usize> = nebtm!["population" => 1000].into();
     /// assert!(m.contains_key("population"));
     /// ```
-    fn from(m: NEMap<K, V, S>) -> Self {
+    fn from(m: NEBTreeMap<K, V>) -> Self {
         m.inner
     }
 }
 
-impl<K, V, S> TryFrom<HashMap<K, V, S>> for NEMap<K, V, S>
+impl<K, V> TryFrom<BTreeMap<K, V>> for NEBTreeMap<K, V>
 where
-    K: Eq + Hash,
-    S: BuildHasher + Default,
+    K: Ord,
 {
     type Error = crate::Error;
 
-    fn try_from(map: HashMap<K, V, S>) -> Result<Self, Self::Error> {
+    fn try_from(map: BTreeMap<K, V>) -> Result<Self, Self::Error> {
         map.try_into_nonempty_iter()
             .map(NonEmptyIterator::collect)
             .ok_or(crate::Error::Empty)
     }
 }
 
-impl<K, V, S> IntoNonEmptyIterator for NEMap<K, V, S> {
+impl<K, V> IntoNonEmptyIterator for NEBTreeMap<K, V> {
     type IntoNEIter = IntoIter<K, V>;
 
     fn into_nonempty_iter(self) -> Self::IntoNEIter {
@@ -461,7 +391,7 @@ impl<K, V, S> IntoNonEmptyIterator for NEMap<K, V, S> {
     }
 }
 
-impl<'a, K, V, S> IntoNonEmptyIterator for &'a NEMap<K, V, S> {
+impl<'a, K, V> IntoNonEmptyIterator for &'a NEBTreeMap<K, V> {
     type IntoNEIter = Iter<'a, K, V>;
 
     fn into_nonempty_iter(self) -> Self::IntoNEIter {
@@ -469,30 +399,30 @@ impl<'a, K, V, S> IntoNonEmptyIterator for &'a NEMap<K, V, S> {
     }
 }
 
-impl<K, V, S> IntoIterator for NEMap<K, V, S> {
+impl<K, V> IntoIterator for NEBTreeMap<K, V> {
     type Item = (K, V);
 
-    type IntoIter = std::collections::hash_map::IntoIter<K, V>;
+    type IntoIter = std::collections::btree_map::IntoIter<K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.into_iter()
     }
 }
 
-impl<'a, K, V, S> IntoIterator for &'a NEMap<K, V, S> {
+impl<'a, K, V> IntoIterator for &'a NEBTreeMap<K, V> {
     type Item = (&'a K, &'a V);
 
-    type IntoIter = std::collections::hash_map::Iter<'a, K, V>;
+    type IntoIter = std::collections::btree_map::Iter<'a, K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
 }
 
-impl<'a, K, V, S> IntoIterator for &'a mut NEMap<K, V, S> {
+impl<'a, K, V> IntoIterator for &'a mut NEBTreeMap<K, V> {
     type Item = (&'a K, &'a mut V);
 
-    type IntoIter = std::collections::hash_map::IterMut<'a, K, V>;
+    type IntoIter = std::collections::btree_map::IterMut<'a, K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter_mut()
@@ -503,29 +433,28 @@ impl<'a, K, V, S> IntoIterator for &'a mut NEMap<K, V, S> {
 /// use nonempty_collections::*;
 ///
 /// let v = nev![('a', 1), ('b', 2), ('c', 3), ('a', 4)];
-/// let m0: NEMap<_, _> = v.into_nonempty_iter().collect();
-/// let m1: NEMap<_, _> = nem!['a' => 4, 'b' => 2, 'c' => 3];
+/// let m0: NEBTreeMap<_, _> = v.into_nonempty_iter().collect();
+/// let m1: NEBTreeMap<_, _> = nebtm!['a' => 4, 'b' => 2, 'c' => 3];
 /// assert_eq!(m0, m1);
 /// ```
-impl<K, V, S> FromNonEmptyIterator<(K, V)> for NEMap<K, V, S>
+impl<K, V> FromNonEmptyIterator<(K, V)> for NEBTreeMap<K, V>
 where
-    K: Eq + Hash,
-    S: BuildHasher + Default,
+    K: Ord,
 {
     fn from_nonempty_iter<I>(iter: I) -> Self
     where
         I: IntoNonEmptyIterator<Item = (K, V)>,
     {
-        NEMap {
+        NEBTreeMap {
             inner: iter.into_nonempty_iter().into_iter().collect(),
         }
     }
 }
 
-/// A non-empty iterator over the entries of an [`NEMap`].
+/// A non-empty iterator over the entries of an [`NEBTreeMap`].
 #[must_use = "non-empty iterators are lazy and do nothing unless consumed"]
 pub struct Iter<'a, K: 'a, V: 'a> {
-    iter: std::collections::hash_map::Iter<'a, K, V>,
+    iter: std::collections::btree_map::Iter<'a, K, V>,
 }
 
 impl<K, V> NonEmptyIterator for Iter<'_, K, V> {}
@@ -533,7 +462,7 @@ impl<K, V> NonEmptyIterator for Iter<'_, K, V> {}
 impl<'a, K, V> IntoIterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
 
-    type IntoIter = std::collections::hash_map::Iter<'a, K, V>;
+    type IntoIter = std::collections::btree_map::Iter<'a, K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter
@@ -546,10 +475,10 @@ impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for Iter<'_, K, V> {
     }
 }
 
-/// A non-empty iterator over mutable values of an [`NEMap`].
+/// A non-empty iterator over mutable values of an [`NEBTreeMap`].
 #[must_use = "non-empty iterators are lazy and do nothing unless consumed"]
 pub struct IterMut<'a, K: 'a, V: 'a> {
-    iter: std::collections::hash_map::IterMut<'a, K, V>,
+    iter: std::collections::btree_map::IterMut<'a, K, V>,
 }
 
 impl<K, V> NonEmptyIterator for IterMut<'_, K, V> {}
@@ -557,7 +486,7 @@ impl<K, V> NonEmptyIterator for IterMut<'_, K, V> {}
 impl<'a, K, V> IntoIterator for IterMut<'a, K, V> {
     type Item = (&'a K, &'a mut V);
 
-    type IntoIter = std::collections::hash_map::IterMut<'a, K, V>;
+    type IntoIter = std::collections::btree_map::IterMut<'a, K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter
@@ -570,9 +499,9 @@ impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for IterMut<'_, K, V> {
     }
 }
 
-/// A non-empty iterator over the entries of an [`NEMap`].
+/// A non-empty iterator over the entries of an [`NEBTreeMap`].
 pub struct IntoIter<K, V> {
-    iter: std::collections::hash_map::IntoIter<K, V>,
+    iter: std::collections::btree_map::IntoIter<K, V>,
 }
 
 impl<K, V> NonEmptyIterator for IntoIter<K, V> {}
@@ -580,7 +509,7 @@ impl<K, V> NonEmptyIterator for IntoIter<K, V> {}
 impl<K, V> IntoIterator for IntoIter<K, V> {
     type Item = (K, V);
 
-    type IntoIter = std::collections::hash_map::IntoIter<K, V>;
+    type IntoIter = std::collections::btree_map::IntoIter<K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter
@@ -593,10 +522,10 @@ impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for IntoIter<K, V> {
     }
 }
 
-/// A non-empty iterator over the keys of an [`NEMap`].
+/// A non-empty iterator over the keys of an [`NEBTreeMap`].
 #[must_use = "non-empty iterators are lazy and do nothing unless consumed"]
 pub struct Keys<'a, K: 'a, V: 'a> {
-    inner: std::collections::hash_map::Keys<'a, K, V>,
+    inner: std::collections::btree_map::Keys<'a, K, V>,
 }
 
 impl<K, V> NonEmptyIterator for Keys<'_, K, V> {}
@@ -604,7 +533,7 @@ impl<K, V> NonEmptyIterator for Keys<'_, K, V> {}
 impl<'a, K, V> IntoIterator for Keys<'a, K, V> {
     type Item = &'a K;
 
-    type IntoIter = std::collections::hash_map::Keys<'a, K, V>;
+    type IntoIter = std::collections::btree_map::Keys<'a, K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner
@@ -617,10 +546,10 @@ impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for Keys<'_, K, V> {
     }
 }
 
-/// A non-empty iterator over the values of an [`NEMap`].
+/// A non-empty iterator over the values of an [`NEBTreeMap`].
 #[must_use = "non-empty iterators are lazy and do nothing unless consumed"]
 pub struct Values<'a, K: 'a, V: 'a> {
-    inner: std::collections::hash_map::Values<'a, K, V>,
+    inner: std::collections::btree_map::Values<'a, K, V>,
 }
 
 impl<K, V> NonEmptyIterator for Values<'_, K, V> {}
@@ -628,7 +557,7 @@ impl<K, V> NonEmptyIterator for Values<'_, K, V> {}
 impl<'a, K, V> IntoIterator for Values<'a, K, V> {
     type Item = &'a V;
 
-    type IntoIter = std::collections::hash_map::Values<'a, K, V>;
+    type IntoIter = std::collections::btree_map::Values<'a, K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner
@@ -641,13 +570,13 @@ impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for Values<'_, K, V> {
     }
 }
 
-impl<K: fmt::Debug, V: fmt::Debug, S> fmt::Debug for NEMap<K, V, S> {
+impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for NEBTreeMap<K, V> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.inner.fmt(f)
     }
 }
 
-// /// A non-empty iterator over mutable values of an [`NEMap`].
+// /// A non-empty iterator over mutable values of an [`NEBTreeMap`].
 // pub struct ValuesMut<'a, K: 'a, V: 'a> {
 //     inner: IterMut<'a, K, V>,
 // }
@@ -656,7 +585,7 @@ impl<K: fmt::Debug, V: fmt::Debug, S> fmt::Debug for NEMap<K, V, S> {
 //     type Item = &'a mut V;
 
 //     type Iter = Skip<Chain<Once<&'a mut V>,
-// std::collections::hash_map::IterMut<'a, K, V>>>;
+// std::collections::btree_map::IterMut<'a, K, V>>>;
 
 //     fn first(self) -> (Self::Item, Self::Iter) {
 //         (self.head_val, self.inner.skip(1))
@@ -667,26 +596,26 @@ impl<K: fmt::Debug, V: fmt::Debug, S> fmt::Debug for NEMap<K, V, S> {
 //     }
 // }
 
-impl<K, V> Singleton for NEMap<K, V>
+impl<K, V> Singleton for NEBTreeMap<K, V>
 where
-    K: Eq + Hash,
+    K: Ord,
 {
     type Item = (K, V);
 
     /// ```
-    /// use nonempty_collections::{NEMap, Singleton, nem};
+    /// use nonempty_collections::{NEBTreeMap, Singleton, nebtm};
     ///
-    /// let m = NEMap::singleton(('a', 1));
-    /// assert_eq!(nem!['a' => 1], m);
+    /// let m = NEBTreeMap::singleton(('a', 1));
+    /// assert_eq!(nebtm!['a' => 1], m);
     /// ```
     fn singleton((k, v): Self::Item) -> Self {
-        NEMap::new(k, v)
+        NEBTreeMap::new(k, v)
     }
 }
 
-impl<K, V> Extend<(K, V)> for NEMap<K, V>
+impl<K, V> Extend<(K, V)> for NEBTreeMap<K, V>
 where
-    K: Eq + Hash,
+    K: Ord,
 {
     fn extend<I: IntoIterator<Item = (K, V)>>(&mut self, iter: I) {
         self.inner.extend(iter);
@@ -705,7 +634,7 @@ mod test {
     #[test]
     fn debug_impl() {
         let expected = format!("{:?}", hashmap! {0 => 10});
-        let actual = format!("{:?}", nem! {0 => 10});
+        let actual = format!("{:?}", nebtm! {0 => 10});
         assert_eq!(expected, actual);
     }
 
@@ -718,14 +647,14 @@ mod test {
             user: "b".to_string(),
         };
 
-        let map = nem![1 => a, 2 => b];
+        let map = nebtm![1 => a, 2 => b];
         assert_eq!("a", map.get(&1).unwrap().user);
         assert_eq!("b", map.get(&2).unwrap().user);
     }
 
     #[test]
     fn macro_length() {
-        let map = nem![1 => 'a', 2 => 'b', 1 => 'c'];
+        let map = nebtm![1 => 'a', 2 => 'b', 1 => 'c'];
         assert_eq!(unsafe { NonZeroUsize::new_unchecked(2) }, map.len());
         assert_eq!('c', *map.get(&1).unwrap());
         assert_eq!('b', *map.get(&2).unwrap());
@@ -733,36 +662,36 @@ mod test {
 
     #[test]
     fn iter_mut() {
-        let mut v = nem! {"a" => 0, "b" => 1, "c" => 2};
+        let mut v = nebtm! {"a" => 0, "b" => 1, "c" => 2};
 
         v.iter_mut().for_each(|(_k, v)| {
             *v += 1;
         });
-        assert_eq!(nem! {"a" => 1, "b" => 2, "c" => 3}, v);
+        assert_eq!(nebtm! {"a" => 1, "b" => 2, "c" => 3}, v);
 
         for (_k, v) in &mut v {
             *v -= 1;
         }
-        assert_eq!(nem! {"a" => 0, "b" => 1, "c" => 2}, v);
+        assert_eq!(nebtm! {"a" => 0, "b" => 1, "c" => 2}, v);
     }
 }
 
 #[cfg(feature = "serde")]
 #[cfg(test)]
 mod serde_tests {
-    use crate::NEMap;
-    use std::collections::HashMap;
+    use crate::NEBTreeMap;
+    use std::collections::BTreeMap;
 
     #[test]
     fn json() {
-        let map0 = nem![1 => 'a', 2 => 'b', 1 => 'c'];
+        let map0 = nebtm![1 => 'a', 2 => 'b', 1 => 'c'];
         let j = serde_json::to_string(&map0).unwrap();
         let map1 = serde_json::from_str(&j).unwrap();
         assert_eq!(map0, map1);
 
-        let empty: HashMap<usize, char> = HashMap::new();
+        let empty: BTreeMap<usize, char> = BTreeMap::new();
         let j = serde_json::to_string(&empty).unwrap();
-        let bad = serde_json::from_str::<NEMap<usize, char>>(&j);
+        let bad = serde_json::from_str::<NEBTreeMap<usize, char>>(&j);
         assert!(bad.is_err());
     }
 }
