@@ -85,8 +85,6 @@ macro_rules! nebts {
 /// Note that the following methods aren't implemented for `NEBTreeSet`:
 ///
 /// - `clear`
-/// - `drain`
-/// - `drain_filter`
 /// - `remove`
 /// - `retain`
 /// - `take`
@@ -145,13 +143,6 @@ where
     #[must_use]
     pub fn len(&self) -> NonZeroUsize {
         unsafe { NonZeroUsize::new_unchecked(self.inner.len()) }
-    }
-
-    /// A `NEBTreeSet` is never empty.
-    #[deprecated(since = "0.1.0", note = "A NEBTreeSet is never empty.")]
-    #[must_use]
-    pub const fn is_empty(&self) -> bool {
-        false
     }
 
     /// Attempt a conversion from a [`BTreeSet`], consuming the given `BTreeSet`.

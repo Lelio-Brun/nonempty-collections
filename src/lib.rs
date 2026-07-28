@@ -18,8 +18,8 @@
 //!
 //!
 //! Alongside [`NEVec`](crate::vector::NEVec) are its cousins
-//! [`NESlice`](crate::slice::NESlice), [`NEMap`](crate::map::NEMap), and
-//! [`NESet`](crate::set::NESet), [`NEBTreeSet`](crate::btree_set::NEBTreeSet),
+//! [`NESlice`](crate::slice::NESlice), [`NEMap`](crate::map::NEMap),
+//! [`NESet`](crate::set::NESet), and [`NEBTreeSet`](crate::btree_set::NEBTreeSet),
 //! which are all guaranteed to contain at least one item.
 //!
 //! # Examples
@@ -122,7 +122,7 @@
 //!
 //! # Caveats
 //!
-//! Since `NEVec`, `NEMap`, and `NESet` must have a least one element, it is not
+//! Since `NEVec` and friends must have a least one element, it is not
 //! possible to implement the [`FromIterator`] trait for them. We can't
 //! know, in general, if any given standard-library [`Iterator`] actually
 //! contains something.
