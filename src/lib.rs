@@ -152,6 +152,8 @@ pub mod vector;
 pub mod either;
 #[cfg(feature = "indexmap")]
 pub mod index_map;
+#[cfg(feature = "indexmap")]
+pub mod index_set;
 #[cfg(feature = "itertools")]
 pub mod itertools;
 
@@ -163,6 +165,8 @@ pub use btree_set::NEBTreeSet;
 pub use either::NEEither;
 #[cfg(feature = "indexmap")]
 pub use index_map::NEIndexMap;
+#[cfg(feature = "indexmap")]
+pub use index_set::NEIndexSet;
 pub use iter::FromNonEmptyIterator;
 pub use iter::IntoIteratorExt;
 pub use iter::IntoNonEmptyIterator;
