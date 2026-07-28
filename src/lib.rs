@@ -16,15 +16,16 @@
 //! Consider that unlike `Vec`, [`NEVec::first()`] and [`NEVec::last()`] don't
 //! return in `Option`; they always succeed.
 //!
+//!
 //! Alongside [`NEVec`](crate::vector::NEVec) are its cousins
 //! [`NESlice`](crate::slice::NESlice), [`NEMap`](crate::map::NEMap), and
-//! [`NESet`](crate::set::NESet), which are all guaranteed to contain at least
-//! one item.
+//! [`NESet`](crate::set::NESet), [`NEBTreeSet`](crate::btree_set::NEBTreeSet),
+//! which are all guaranteed to contain at least one item.
 //!
 //! # Examples
 //!
 //! The simplest way to construct these non-empty collections is via their
-//! macros: [`nev!`], [`nes!`], and [`nem!`]:
+//! macros: [`nev!`], [`nes!`], [`nem!`], and [`nebts!`]:
 //!
 //! ```
 //! use nonempty_collections::*;
@@ -135,6 +136,7 @@
 //! * `rand`: adds `NEVec` support for `SliceRandom`.
 
 pub mod array;
+pub mod btree_set;
 pub mod iter;
 pub mod map;
 pub mod set;
@@ -150,6 +152,7 @@ pub mod itertools;
 
 pub use array::ArrayNonEmptyIterator;
 pub use array::NonEmptyArrayExt;
+pub use btree_set::NEBTreeSet;
 #[cfg(feature = "either")]
 pub use either::NEEither;
 #[cfg(feature = "indexmap")]
