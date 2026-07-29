@@ -205,6 +205,29 @@ where
         }
     }
 
+    /// Creates a new non-empty set by consuming an iterator if it is non-empty,
+    /// returns `None` otherwise.
+    ///
+    /// # Example Use
+    ///
+    /// ```
+    /// use nonempty_collections::neis;
+    /// use nonempty_collections::NEIndexSet;
+    ///
+    /// let set = NEIndexSet::<_, std::hash::RandomState>::try_from_iterator((0..=5).rev().map(|n| n % 3));
+    /// assert!(set.is_some_and(|s| s.into_iter().eq(neis![2, 1, 0])));
+    ///
+    /// let empty_set: Option<NEIndexSet<&u32>> = NEIndexSet::try_from_iterator(std::iter::empty());
+    /// assert!(empty_set.is_none());
+    /// ```
+    #[must_use]
+    pub fn try_from_iterator(i: impl IntoIterator<Item = T>) -> Option<Self>
+    where
+        S: Default,
+    {
+        Self::try_from_set(i.into_iter().collect())
+    }
+
     /// Returns true if the set contains a value.
     ///
     /// ```

@@ -536,6 +536,26 @@ impl<T> NEVec<T> {
         }
     }
 
+    /// Creates a new non-empty vec by consuming an iterator if it is non-empty,
+    /// returns `None` otherwise.
+    ///
+    /// # Example Use
+    ///
+    /// ```
+    /// use nonempty_collections::nev;
+    /// use nonempty_collections::NEVec;
+    ///
+    /// let v_vec = NEVec::try_from_iterator(1..=5);
+    /// assert_eq!(v_vec, Some(nev![1, 2, 3, 4, 5]));
+    ///
+    /// let empty_vec: Option<NEVec<&u32>> = NEVec::try_from_iterator(std::iter::empty());
+    /// assert!(empty_vec.is_none());
+    /// ```
+    #[must_use]
+    pub fn try_from_iterator(i: impl IntoIterator<Item = T>) -> Option<Self> {
+        Self::try_from_vec(i.into_iter().collect())
+    }
+
     /// Deconstruct a `NEVec` into its head and tail. This operation never fails
     /// since we are guaranteed to have a head element.
     ///

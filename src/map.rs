@@ -114,6 +114,33 @@ impl<K, V, S> NEMap<K, V, S> {
         }
     }
 
+    /// Creates a new non-empty map by consuming an iterator if it is non-empty,
+    /// returns `None` otherwise.
+    ///
+    /// # Example Use
+    ///
+    /// ```
+    /// use nonempty_collections::nem;
+    /// use nonempty_collections::NEMap;
+    ///
+    /// let map = NEMap::try_from_iterator((0 as u8..=5).map(|n| {
+    ///     let i = n % 3;
+    ///     ((97 + i) as char, i)
+    /// }));
+    /// assert_eq!(map, Some(nem! {'a' => 0, 'b' => 1, 'c' => 2 }));
+    ///
+    /// let empty_map: Option<NEMap<char, &u32>> = NEMap::try_from_iterator(std::iter::empty());
+    /// assert!(empty_map.is_none());
+    /// ```
+    #[must_use]
+    pub fn try_from_iterator(i: impl IntoIterator<Item = (K, V)>) -> Option<Self>
+    where
+        K: Eq + Hash,
+        S: Default + BuildHasher,
+    {
+        Self::try_from_map(i.into_iter().collect())
+    }
+
     /// Returns the number of elements the map can hold without reallocating.
     #[must_use]
     pub fn capacity(&self) -> NonZeroUsize {

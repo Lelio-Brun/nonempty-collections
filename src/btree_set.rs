@@ -170,6 +170,26 @@ where
         }
     }
 
+    /// Creates a new non-empty set by consuming an iterator if it is non-empty,
+    /// returns `None` otherwise.
+    ///
+    /// # Example Use
+    ///
+    /// ```
+    /// use nonempty_collections::nebts;
+    /// use nonempty_collections::NEBTreeSet;
+    ///
+    /// let set = NEBTreeSet::try_from_iterator((0..=5).map(|n| n % 3));
+    /// assert_eq!(set, Some(nebts![0, 1, 2]));
+    ///
+    /// let empty_set: Option<NEBTreeSet<&u32>> = NEBTreeSet::try_from_iterator(std::iter::empty());
+    /// assert!(empty_set.is_none());
+    /// ```
+    #[must_use]
+    pub fn try_from_iterator(i: impl IntoIterator<Item = T>) -> Option<Self> {
+        Self::try_from_set(i.into_iter().collect())
+    }
+
     /// Returns true if the set contains a value.
     ///
     /// ```

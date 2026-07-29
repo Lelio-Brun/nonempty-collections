@@ -256,6 +256,32 @@ where
         }
     }
 
+    /// Creates a new non-empty map by consuming an iterator if it is non-empty,
+    /// returns `None` otherwise.
+    ///
+    /// # Example Use
+    ///
+    /// ```
+    /// use nonempty_collections::neim;
+    /// use nonempty_collections::NEIndexMap;
+    ///
+    /// let map = NEIndexMap::<_, _, std::hash::RandomState>::try_from_iterator((0 as u8..=5).rev().map(|n| {
+    ///     let i = n % 3;
+    ///     ((97 + i) as char, i)
+    /// }));
+    /// assert!(map.is_some_and(|m| m.into_iter().eq(neim! {'c' => 2, 'b' => 1, 'a' => 0 })));
+    ///
+    /// let empty_map: Option<NEIndexMap<char, &u32>> = NEIndexMap::try_from_iterator(std::iter::empty());
+    /// assert!(empty_map.is_none());
+    /// ```
+    #[must_use]
+    pub fn try_from_iterator(i: impl IntoIterator<Item = (K, V)>) -> Option<Self>
+    where
+        S: Default,
+    {
+        Self::try_from_map(i.into_iter().collect())
+    }
+
     /// Returns true if the map contains a value.
     ///
     /// ```

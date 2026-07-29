@@ -96,6 +96,32 @@ impl<K, V> NEBTreeMap<K, V> {
         }
     }
 
+    /// Creates a new non-empty map by consuming an iterator if it is non-empty,
+    /// returns `None` otherwise.
+    ///
+    /// # Example Use
+    ///
+    /// ```
+    /// use nonempty_collections::nebtm;
+    /// use nonempty_collections::NEBTreeMap;
+    ///
+    /// let map = NEBTreeMap::try_from_iterator((0 as u8..=5).map(|n| {
+    ///     let i = n % 3;
+    ///     ((97 + i) as char, i)
+    /// }));
+    /// assert_eq!(map, Some(nebtm! {'a' => 0, 'b' => 1, 'c' => 2 }));
+    ///
+    /// let empty_map: Option<NEBTreeMap<char, &u32>> = NEBTreeMap::try_from_iterator(std::iter::empty());
+    /// assert!(empty_map.is_none());
+    /// ```
+    #[must_use]
+    pub fn try_from_iterator(i: impl IntoIterator<Item = (K, V)>) -> Option<Self>
+    where
+        K: Ord,
+    {
+        Self::try_from_map(i.into_iter().collect())
+    }
+
     /// Returns a regular iterator over the entries in this non-empty map.
     ///
     /// For a `NonEmptyIterator` see `Self::nonempty_iter()`.
